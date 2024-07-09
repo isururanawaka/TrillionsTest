@@ -25,7 +25,7 @@ message("Finding Trillions")
 #else()
 #    message(FATAL_ERROR "Could not find Trillions library or include directory.")
 #endif()
-SET(Trilinos_PREFIX /global/cfs/cdirs/m4293/Trillions/install/)
+SET(Trilinos_PREFIX "/global/cfs/cdirs/m4293/Trillions/install")
 SET(CMAKE_PREFIX_PATH ${Trilinos_PREFIX} ${CMAKE_PREFIX_PATH})
 
 #include_directories("/global/cfs/cdirs/m4293/Trillions/install/include")

@@ -16,8 +16,8 @@ find_package(OpenMP REQUIRED)
 
 # Trillions
 message("Finding Trillions")
-find_path(TRILLIONS_INCLUDE_DIR trillions/trillions.h PATHS $ENV{TRILLIONS_ROOT}/install/include)
-find_library(TRILLIONS_LIBRARY Trillions PATHS $ENV{TRILLIONS_ROOT}/install/lib64)
+find_path(TRILLIONS_INCLUDE_DIR trillions/trillions.h PATHS $ENV{TRILLIONS_ROOT}/include)
+find_library(TRILLIONS_LIBRARY Trillions PATHS $ENV{TRILLIONS_ROOT}/lib64)
 
 if (TRILLIONS_INCLUDE_DIR AND TRILLIONS_LIBRARY)
     message(STATUS "Trillions include dir: ${TRILLIONS_INCLUDE_DIR}")

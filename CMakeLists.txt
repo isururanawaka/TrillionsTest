@@ -45,4 +45,4 @@ add_executable(trillions_test ${SOURCES})
 
 target_compile_options(trillions_test PRIVATE -std=c++17 -Ofast -march=native -Icpp -Icpp/lib -DMKL_ILP64 -m64 -fopenmp -I$ENV{MKLROOT}/include -lgomp)
 
-target_link_libraries(trillions_test PRIVATE Trillions MPI::MPI_C OpenMP::OpenMP_CXX)
+target_link_libraries(trillions_test PRIVATE  MPI::MPI_C OpenMP::OpenMP_CXX)

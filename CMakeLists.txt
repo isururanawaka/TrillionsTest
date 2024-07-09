@@ -25,12 +25,10 @@ message("Finding Trillions")
 #else()
 #    message(FATAL_ERROR "Could not find Trillions library or include directory.")
 #endif()
-SET(Trilinos_PREFIX "/global/cfs/cdirs/m4293/Trillions/install")
-SET(CMAKE_PREFIX_PATH ${Trilinos_PREFIX} ${CMAKE_PREFIX_PATH})
+find_package(Trilinos REQUIRED COMPONENTS Teuchos Tpetra)
 
 #include_directories("/global/cfs/cdirs/m4293/Trillions/install/include")
 #link_directories("/global/cfs/cdirs/m4293/Trillions/install/lib64")
-FIND_PACKAGE(Trilinos REQUIRED)
 
 MESSAGE("\nFound Trilinos!  Here are the details: ")
 MESSAGE("   Trilinos_DIR = ${Trilinos_DIR}")
@@ -50,30 +48,24 @@ MESSAGE("   Trilinos_Fortran_COMPILER_FLAGS = ${Trilinos_Fortran_COMPILER_FLAGS}
 MESSAGE("End of Trilinos details\n")
 
 # Make sure to use same compilers and flags as Trilinos
-SET(CMAKE_CXX_COMPILER ${Trilinos_CXX_COMPILER} )
-SET(CMAKE_C_COMPILER ${Trilinos_C_COMPILER} )
-SET(CMAKE_Fortran_COMPILER ${Trilinos_Fortran_COMPILER} )
+add_executable(TrillionsTest ${CMAKE_CURRENT_SOURCE_DIR}/app.cpp)
+target_link_libraries(TrillionsTest  Trilinos::all_selected_libs)
 
-SET(CMAKE_CXX_FLAGS  "${Trilinos_CXX_COMPILER_FLAGS} ${CMAKE_CXX_FLAGS}")
-SET(CMAKE_C_FLAGS  "${Trilinos_C_COMPILER_FLAGS} ${CMAKE_C_FLAGS}")
-SET(CMAKE_Fortran_FLAGS  "${Trilinos_Fortran_COMPILER_FLAGS} ${CMAKE_Fortran_FLAGS}")
+# Build the APP and link to Trilinos
+add_executable(MyApp ${CMAKE_CURRENT_SOURCE_DIR}/app.cpp)
+target_link_libraries(MyApp  Trilinos::all_selected_libs)
+# Or, above could have linked to just Tpetra::all_libs
 
-
-
-message("CMAKE_BINARY_PATH ${CMAKE_BINARY_DIR}")
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
-
-SET(BUILD_TESTS ON)
-
-#if (BUILD_TESTS)
-#    add_subdirectory(tests)
-#    message(STATUS "Building tests ....")
-#endif()
-
-SET(SOURCES cpp/vector_test.cpp)
-
-add_executable(trillions_test ${SOURCES})
-
-target_compile_options(trillions_test PRIVATE -std=c++17 -Ofast -march=native -Icpp -Icpp/lib -DMKL_ILP64 -m64 -fopenmp -I$ENV{MKLROOT}/include -lgomp)
-
-target_link_libraries(trillions_test PRIVATE  MPI::MPI_C OpenMP::OpenMP_CXX)
+# Set up a test
+enable_testing()
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/input.xml
+        ${CMAKE_CURRENT_BINARY_DIR}/input.xml COPYONLY)
+set(NUM_MPI_PROCS 4)
+add_test(MyAppTest mpiexec -np ${NUM_MPI_PROCS} "${CMAKE_CURRENT_BINARY_DIR}/MyApp")
+set_tests_properties(MyAppTest PROPERTIES
+        PROCESSORS ${NUM_MPI_PROCS}
+        PASS_REGULAR_EXPRESSION "vec.norm1[(][)] = 40"
+        )
+# NOTE: Above, mpiexec with mpich-3.2 requires you pass in the abs path to
+# MyApp or mpiexec says it can't find it, even though it is running in the
+# correct directory (see #10813).

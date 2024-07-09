@@ -39,7 +39,7 @@ SET(BUILD_TESTS ON)
 #    message(STATUS "Building tests ....")
 #endif()
 
-SET(SOURCES cpp/vector_test.hpp)
+SET(SOURCES cpp/vector_test.cpp)
 
 add_executable(trillions_test ${SOURCES})
 

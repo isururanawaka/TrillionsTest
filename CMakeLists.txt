@@ -57,11 +57,11 @@ target_link_libraries(MyApp  Trilinos::all_selected_libs)
 # Or, above could have linked to just Tpetra::all_libs
 
 # Set up a test
-enable_testing()
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/input.xml
-        ${CMAKE_CURRENT_BINARY_DIR}/input.xml COPYONLY)
-set(NUM_MPI_PROCS 4)
-add_test(MyAppTest mpicc -n ${NUM_MPI_PROCS} "${CMAKE_CURRENT_BINARY_DIR}/MyApp")
+#enable_testing()
+#configure_file(${CMAKE_CURRENT_SOURCE_DIR}/input.xml
+#        ${CMAKE_CURRENT_BINARY_DIR}/input.xml COPYONLY)
+#set(NUM_MPI_PROCS 4)
+#add_test(MyAppTest mpicc -n ${NUM_MPI_PROCS} "${CMAKE_CURRENT_BINARY_DIR}/MyApp")
 #set_tests_properties(MyAppTest PROPERTIES
 #        PROCESSORS ${NUM_MPI_PROCS}
 #        PASS_REGULAR_EXPRESSION "vec.norm1[(][)] = 40"

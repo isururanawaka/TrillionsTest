@@ -61,7 +61,7 @@ enable_testing()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/input.xml
         ${CMAKE_CURRENT_BINARY_DIR}/input.xml COPYONLY)
 set(NUM_MPI_PROCS 4)
-add_test(MyAppTest mpicc -np ${NUM_MPI_PROCS} "${CMAKE_CURRENT_BINARY_DIR}/MyApp")
+add_test(MyAppTest mpicc -n ${NUM_MPI_PROCS} "${CMAKE_CURRENT_BINARY_DIR}/MyApp")
 #set_tests_properties(MyAppTest PROPERTIES
 #        PROCESSORS ${NUM_MPI_PROCS}
 #        PASS_REGULAR_EXPRESSION "vec.norm1[(][)] = 40"

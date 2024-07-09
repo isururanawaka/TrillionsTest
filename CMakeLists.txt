@@ -17,7 +17,7 @@ find_package(OpenMP REQUIRED)
 # Trillions
 message("Finding Trillions")
 find_path(TRILLIONS_INCLUDE_DIR trillions/trillions.h PATHS $ENV{TRILLIONS_ROOT}/install/include)
-find_library(TRILLIONS_LIBRARY Trillions PATHS $ENV{TRILLIONS_ROOT}/install/lib)
+find_library(TRILLIONS_LIBRARY Trillions PATHS $ENV{TRILLIONS_ROOT}/install/lib64)
 
 if (TRILLIONS_INCLUDE_DIR AND TRILLIONS_LIBRARY)
     message(STATUS "Trillions include dir: ${TRILLIONS_INCLUDE_DIR}")
@@ -27,7 +27,7 @@ else()
 endif()
 
 include_directories(${TRILLIONS_INCLUDE_DIR})
-link_directories($ENV{TRILLIONS_ROOT}/install/lib)
+link_directories($ENV{TRILLIONS_ROOT}/install/lib64)
 
 message("CMAKE_BINARY_PATH ${CMAKE_BINARY_DIR}")
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)

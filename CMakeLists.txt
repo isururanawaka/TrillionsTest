@@ -28,8 +28,8 @@ message("Finding Trillions")
 SET(Trilinos_PREFIX /global/cfs/cdirs/m4293/Trillions/install/)
 SET(CMAKE_PREFIX_PATH ${Trilinos_PREFIX} ${CMAKE_PREFIX_PATH})
 
-include_directories("/global/cfs/cdirs/m4293/Trillions/install/include")
-link_directories("/global/cfs/cdirs/m4293/Trillions/install/lib64")
+#include_directories("/global/cfs/cdirs/m4293/Trillions/install/include")
+#link_directories("/global/cfs/cdirs/m4293/Trillions/install/lib64")
 FIND_PACKAGE(Trilinos REQUIRED)
 
 MESSAGE("\nFound Trilinos!  Here are the details: ")

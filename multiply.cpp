@@ -1,10 +1,10 @@
 #include <Tpetra_CrsMatrix.hpp>
 #include <Tpetra_CrsGraph.hpp>
 #include <MatrixMarket_Tpetra.hpp>
-#include <Tpetra_DefaultPlatform.hpp>
 #include <Tpetra_Map.hpp>
 #include <Tpetra_MultiVector.hpp>
 #include <Teuchos_RCP.hpp>
+#include <Teuchos_DefaultComm.hpp>
 #include <Teuchos_GlobalMPISession.hpp>
 #include <Teuchos_TimeMonitor.hpp>
 #include <iostream>

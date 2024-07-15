@@ -1,23 +1,24 @@
 #include <mpi.h>
-#include <Epetra_MpiComm.h>
-#include <Epetra_CrsMatrix.h>
-#include <EpetraExt_MatrixMatrix.h>
-#include <EpetraExt_RowMatrixOut.h>
-#include <Epetra_Time.h>
 #include <Teuchos_RCP.hpp>
+#include <Tpetra_Core.hpp>
+#include <Tpetra_CrsMatrix.hpp>
+#include <Tpetra_Import.hpp>
+#include <Tpetra_MatrixIO.hpp>
+#include <Teuchos_DefaultMpiComm.hpp>
+#include <Teuchos_CommHelpers.hpp>
+#include <Teuchos_TimeMonitor.hpp>
 #include <iostream>
 
 int main(int argc, char* argv[]) {
   // Initialize MPI
-  MPI_Init(&argc, &argv);
-  Epetra_MpiComm Comm(MPI_COMM_WORLD);
+  Tpetra::ScopeGuard tpetraScope(&argc, &argv);
+  auto comm = Tpetra::getDefaultComm();
 
   // Check for correct number of arguments
   if (argc != 3) {
-    if (Comm.MyPID() == 0) {
+    if (comm->getRank() == 0) {
       std::cerr << "Usage: " << argv[0] << " <matrix_A.mtx> <matrix_B.mtx>" << std::endl;
     }
-    MPI_Finalize();
     return -1;
   }
 
@@ -26,41 +27,50 @@ int main(int argc, char* argv[]) {
   const char* matrixBPath = argv[2];
 
   // Read sparse matrix market files
-  Teuchos::RCP<Epetra_CrsMatrix> A;
-  Teuchos::RCP<Epetra_CrsMatrix> B;
-  EpetraExt::MatrixMarketFileToCrsMatrix(matrixAPath, Comm, A);
-  EpetraExt::MatrixMarketFileToCrsMatrix(matrixBPath, Comm, B);
+  using scalar_type = double;
+  using local_ordinal_type = int;
+  using global_ordinal_type = long long;
+  using node_type = Tpetra::Map<>::node_type;
+
+  using crs_matrix_type = Tpetra::CrsMatrix<scalar_type, local_ordinal_type, global_ordinal_type, node_type>;
+  using map_type = Tpetra::Map<local_ordinal_type, global_ordinal_type, node_type>;
+
+  Teuchos::RCP<const map_type> mapA;
+  Teuchos::RCP<crs_matrix_type> A;
+  Tpetra::MatrixMarket::Reader<crs_matrix_type>::readSparseFile(matrixAPath, comm, mapA, A);
+
+  Teuchos::RCP<const map_type> mapB;
+  Teuchos::RCP<crs_matrix_type> B;
+  Tpetra::MatrixMarket::Reader<crs_matrix_type>::readSparseFile(matrixBPath, comm, mapB, B);
 
   // Check dimensions
-  if (A->NumGlobalCols() != B->NumGlobalRows()) {
-    if (Comm.MyPID() == 0) {
+  if (A->getGlobalNumCols() != B->getGlobalNumRows()) {
+    if (comm->getRank() == 0) {
       std::cerr << "Matrix dimensions do not match for multiplication." << std::endl;
     }
-    MPI_Finalize();
     return -1;
   }
 
   // Start timing
-  Epetra_Time timer(Comm);
+  Teuchos::Time timer("Matrix multiplication time");
+  timer.start();
 
   // Perform matrix multiplication C = A * B
-  Teuchos::RCP<Epetra_CrsMatrix> C;
-  EpetraExt::MatrixMatrix::Multiply(*A, false, *B, false, C);
+  Teuchos::RCP<crs_matrix_type> C = Tpetra::MatrixMatrix::multiply(*A, false, *B, false);
 
   // Stop timing
-  double elapsedTime = timer.ElapsedTime();
+  timer.stop();
+  double elapsedTime = timer.totalElapsedTime();
 
   // Print timing
-  if (Comm.MyPID() == 0) {
+  if (comm->getRank() == 0) {
     std::cout << "Matrix multiplication took " << elapsedTime << " seconds." << std::endl;
   }
 
   // Optionally write result to file
-  if (Comm.MyPID() == 0) {
-    EpetraExt::RowMatrixToMatrixMarketFile("matrix_C.mtx", *C);
+  if (comm->getRank() == 0) {
+    Tpetra::MatrixMarket::Writer<crs_matrix_type>::writeSparseFile("matrix_C.mtx", C);
   }
 
-  // Finalize MPI
-  MPI_Finalize();
   return 0;
 }

@@ -26,12 +26,13 @@ Teuchos::RCP<crs_matrix_type> readMatrixWithDefaultValues(const std::string& fil
   size_t numRows = matrix->getLocalNumRows();
   for (size_t i = 0; i < numRows; ++i) {
     local_ordinal_type localRow = static_cast<local_ordinal_type>(i);
-    Teuchos::ArrayView<const local_ordinal_type> indices;
-    Teuchos::ArrayView<const scalar_type> values;
+    typename crs_matrix_type::local_inds_host_view_type indices;
+    typename crs_matrix_type::values_host_view_type values;
     matrix->getLocalRowView(localRow, indices, values);
 
-    Teuchos::Array<scalar_type> newValues(values.size(), 1.0);
-    matrix->replaceLocalValues(localRow, indices, newValues());
+    for (size_t j = 0; j < indices.size(); ++j) {
+      values(j) = 1.0;
+    }
   }
   matrix->fillComplete();
   return matrix;

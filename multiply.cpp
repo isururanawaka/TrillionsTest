@@ -23,11 +23,15 @@ Teuchos::RCP<crs_matrix_type> readMatrixWithDefaultValues(const std::string& fil
   }
 
   // Ensure all entries have value 1
-  for (size_t i = 0; i < matrix->getNodeNumRows(); ++i) {
-    auto rowView = matrix->getLocalRowView(i);
-    for (size_t j = 0; j < rowView.length; ++j) {
-      rowView.values[j] = 1.0;
-    }
+  size_t numRows = matrix->getLocalNumRows();
+  for (size_t i = 0; i < numRows; ++i) {
+    local_ordinal_type localRow = static_cast<local_ordinal_type>(i);
+    Teuchos::ArrayView<const local_ordinal_type> indices;
+    Teuchos::ArrayView<const scalar_type> values;
+    matrix->getLocalRowView(localRow, indices, values);
+
+    Teuchos::Array<scalar_type> newValues(values.size(), 1.0);
+    matrix->replaceLocalValues(localRow, indices, newValues());
   }
   matrix->fillComplete();
   return matrix;

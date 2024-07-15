@@ -52,7 +52,7 @@ add_executable(TrillionsTest ${CMAKE_CURRENT_SOURCE_DIR}/app.cpp)
 target_link_libraries(TrillionsTest  Trilinos::all_selected_libs)
 
 # Build the APP and link to Trilinos
-add_executable(MyApp ${CMAKE_CURRENT_SOURCE_DIR}/app.cpp)
+add_executable(MyApp ${CMAKE_CURRENT_SOURCE_DIR}/multiply.cpp)
 target_link_libraries(MyApp  Trilinos::all_selected_libs)
 # Or, above could have linked to just Tpetra::all_libs
 

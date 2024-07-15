@@ -1,10 +1,12 @@
 #include <Tpetra_CrsMatrix.hpp>
 #include <Tpetra_Map.hpp>
+#include <Tpetra_MatrixMatrix.hpp>
 #include <MatrixMarket_Tpetra.hpp>
 #include <Teuchos_RCP.hpp>
 #include <Teuchos_GlobalMPISession.hpp>
 #include <Teuchos_DefaultComm.hpp>
 #include <Teuchos_TimeMonitor.hpp>
+#include <Kokkos_Core.hpp>
 #include <iostream>
 
 typedef double scalar_type;
@@ -30,6 +32,7 @@ Teuchos::RCP<crs_matrix_type> readMatrixWithDefaultValues(const std::string& fil
     typename crs_matrix_type::values_host_view_type values;
     matrix->getLocalRowView(localRow, indices, values);
 
+    // Copy values to a mutable view
     for (size_t j = 0; j < indices.size(); ++j) {
       values(j) = 1.0;
     }
@@ -58,7 +61,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Multiply A and B, timing the operation
-  Teuchos::RCP<crs_matrix_type> C;
+  Teuchos::RCP<crs_matrix_type> C = Tpetra::createCrsMatrix<scalar_type, local_ordinal_type, global_ordinal_type>(A->getRowMap());
   {
     Teuchos::TimeMonitor tm(*Teuchos::TimeMonitor::getNewTimer("Matrix Multiplication Time"));
     Tpetra::MatrixMatrix::Multiply(*A, false, *B, false, C);

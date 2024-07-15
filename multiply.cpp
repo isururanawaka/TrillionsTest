@@ -1,8 +1,6 @@
 #include <Tpetra_CrsMatrix.hpp>
-#include <Tpetra_CrsGraph.hpp>
-#include <MatrixMarket_Tpetra.hpp>
 #include <Tpetra_Map.hpp>
-#include <Tpetra_MultiVector.hpp>
+#include <MatrixMarket_Tpetra.hpp>
 #include <Teuchos_RCP.hpp>
 #include <Teuchos_GlobalMPISession.hpp>
 #include <Teuchos_DefaultComm.hpp>
@@ -13,8 +11,27 @@ typedef double scalar_type;
 typedef int local_ordinal_type;
 typedef long long global_ordinal_type;
 typedef Tpetra::CrsMatrix<scalar_type, local_ordinal_type, global_ordinal_type> crs_matrix_type;
-typedef Tpetra::CrsGraph<local_ordinal_type, global_ordinal_type> crs_graph_type;
 typedef Tpetra::Map<local_ordinal_type, global_ordinal_type> map_type;
+
+Teuchos::RCP<crs_matrix_type> readMatrixWithDefaultValues(const std::string& filePath, const Teuchos::RCP<const Teuchos::Comm<int>>& comm) {
+  Teuchos::RCP<crs_matrix_type> matrix;
+  try {
+    matrix = Tpetra::MatrixMarket::Reader<crs_matrix_type>::readSparseFile(filePath, comm);
+  } catch (std::exception &e) {
+    std::cerr << "Error reading matrix file: " << e.what() << std::endl;
+    return Teuchos::null;
+  }
+
+  // Ensure all entries have value 1
+  for (size_t i = 0; i < matrix->getNodeNumRows(); ++i) {
+    auto rowView = matrix->getLocalRowView(i);
+    for (size_t j = 0; j < rowView.length; ++j) {
+      rowView.values[j] = 1.0;
+    }
+  }
+  matrix->fillComplete();
+  return matrix;
+}
 
 int main(int argc, char *argv[]) {
   Teuchos::GlobalMPISession mpiSession(&argc, &argv);
@@ -25,25 +42,15 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  const char *matrixAPath = argv[1];
-  const char *matrixBPath = argv[2];
+  std::string matrixAPath = argv[1];
+  std::string matrixBPath = argv[2];
 
-  Teuchos::RCP<crs_graph_type> graphA, graphB;
-  try {
-    graphA = Tpetra::MatrixMarket::Reader<crs_graph_type>::readSparseGraph(matrixAPath, comm);
-    graphB = Tpetra::MatrixMarket::Reader<crs_graph_type>::readSparseGraph(matrixBPath, comm);
-  } catch (std::exception &e) {
-    std::cerr << "Error reading graph files: " << e.what() << std::endl;
+  Teuchos::RCP<crs_matrix_type> A = readMatrixWithDefaultValues(matrixAPath, comm);
+  Teuchos::RCP<crs_matrix_type> B = readMatrixWithDefaultValues(matrixBPath, comm);
+
+  if (A.is_null() || B.is_null()) {
     return 1;
   }
-
-  // Create matrices A and B from the graphs, initializing values to 1
-  Teuchos::RCP<crs_matrix_type> A = Teuchos::rcp(new crs_matrix_type(graphA));
-  Teuchos::RCP<crs_matrix_type> B = Teuchos::rcp(new crs_matrix_type(graphB));
-  A->setAllToScalar(1.0);
-  B->setAllToScalar(1.0);
-  A->fillComplete();
-  B->fillComplete();
 
   // Multiply A and B, timing the operation
   Teuchos::RCP<crs_matrix_type> C;

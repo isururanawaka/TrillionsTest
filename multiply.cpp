@@ -4,7 +4,7 @@
 #include <Tpetra_CrsMatrix.hpp>
 #include <Tpetra_Import.hpp>
 #include <MatrixMarket_Tpetra.hpp>
-#include <Tpetra_MatrixMatrix.hpp>
+#include <TpetraExt_MatrixMatrix.hpp>
 #include <Teuchos_DefaultMpiComm.hpp>
 #include <Teuchos_CommHelpers.hpp>
 #include <Teuchos_TimeMonitor.hpp>

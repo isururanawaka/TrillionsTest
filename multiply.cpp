@@ -37,11 +37,11 @@ int main(int argc, char* argv[]) {
 
   Teuchos::RCP<const map_type> mapA;
   Teuchos::RCP<crs_matrix_type> A;
-  Tpetra::MatrixMarket::Reader<crs_matrix_type>::readSparseFile(matrixAPath, comm, mapA, A);
+  Tpetra::MatrixIO::readSparseFile(matrixAPath, comm, mapA, A);
 
   Teuchos::RCP<const map_type> mapB;
   Teuchos::RCP<crs_matrix_type> B;
-  Tpetra::MatrixMarket::Reader<crs_matrix_type>::readSparseFile(matrixBPath, comm, mapB, B);
+  Tpetra::MatrixIO::readSparseFile(matrixBPath, comm, mapB, B);
 
   // Check dimensions
   if (A->getGlobalNumCols() != B->getGlobalNumRows()) {
@@ -56,7 +56,8 @@ int main(int argc, char* argv[]) {
   timer.start();
 
   // Perform matrix multiplication C = A * B
-  Teuchos::RCP<crs_matrix_type> C = Tpetra::MatrixMatrix::multiply(*A, false, *B, false);
+  Teuchos::RCP<crs_matrix_type> C;
+  Tpetra::MatrixMatrix::Multiply(*A, false, *B, false, C);
 
   // Stop timing
   timer.stop();
@@ -69,7 +70,7 @@ int main(int argc, char* argv[]) {
 
   // Optionally write result to file
   if (comm->getRank() == 0) {
-    Tpetra::MatrixMarket::Writer<crs_matrix_type>::writeSparseFile("matrix_C.mtx", C);
+    Tpetra::MatrixIO::writeSparseFile("matrix_C.mtx", C);
   }
 
   return 0;

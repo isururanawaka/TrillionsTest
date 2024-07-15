@@ -8,7 +8,6 @@
 #SBATCH --constraint=cpu
 #SBATCH --output=%j.log
 
-
 export OMP_NUM_THREADS=32
 
-srun -n 4  --cpu-bind=cores /global/cfs/cdirs/m4293/Trillions/TrillionsTest/MyApp
+srun -n 4 --cpu-bind=cores /global/cfs/cdirs/m4293/Trillions/TrillionsTest/build/MyApp /path/to/matrix_A.mtx /path/to/matrix_B.mtx

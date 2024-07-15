@@ -1,74 +1,76 @@
-#include <Tpetra_CrsMatrix.hpp>
-#include <Tpetra_Map.hpp>
-#include <Tpetra_MatrixMatrix.hpp>
-#include <MatrixMarket_Tpetra.hpp>
+#include <mpi.h>
 #include <Teuchos_RCP.hpp>
-#include <Teuchos_GlobalMPISession.hpp>
-#include <Teuchos_DefaultComm.hpp>
+#include <Tpetra_Core.hpp>
+#include <Tpetra_CrsMatrix.hpp>
+#include <Tpetra_Import.hpp>
+#include <Tpetra_MatrixIO.hpp>
+#include <Teuchos_DefaultMpiComm.hpp>
+#include <Teuchos_CommHelpers.hpp>
 #include <Teuchos_TimeMonitor.hpp>
-#include <Kokkos_Core.hpp>
 #include <iostream>
 
-typedef double scalar_type;
-typedef int local_ordinal_type;
-typedef long long global_ordinal_type;
-typedef Tpetra::CrsMatrix<scalar_type, local_ordinal_type, global_ordinal_type> crs_matrix_type;
-typedef Tpetra::Map<local_ordinal_type, global_ordinal_type> map_type;
+int main(int argc, char* argv[]) {
+  // Initialize MPI
+  Tpetra::ScopeGuard tpetraScope(&argc, &argv);
+  auto comm = Tpetra::getDefaultComm();
 
-Teuchos::RCP<crs_matrix_type> readMatrixWithDefaultValues(const std::string& filePath, const Teuchos::RCP<const Teuchos::Comm<int>>& comm) {
-  Teuchos::RCP<crs_matrix_type> matrix;
-  try {
-    matrix = Tpetra::MatrixMarket::Reader<crs_matrix_type>::readSparseFile(filePath, comm);
-  } catch (std::exception &e) {
-    std::cerr << "Error reading matrix file: " << e.what() << std::endl;
-    return Teuchos::null;
-  }
-
-  // Ensure all entries have value 1
-  size_t numRows = matrix->getLocalNumRows();
-  for (size_t i = 0; i < numRows; ++i) {
-    local_ordinal_type localRow = static_cast<local_ordinal_type>(i);
-    typename crs_matrix_type::local_inds_host_view_type indices;
-    typename crs_matrix_type::values_host_view_type values;
-    matrix->getLocalRowView(localRow, indices, values);
-
-    // Copy values to a mutable view
-    for (size_t j = 0; j < indices.size(); ++j) {
-      values(j) = 1.0;
-    }
-  }
-  matrix->fillComplete();
-  return matrix;
-}
-
-int main(int argc, char *argv[]) {
-  Teuchos::GlobalMPISession mpiSession(&argc, &argv);
-  Teuchos::RCP<const Teuchos::Comm<int>> comm = Teuchos::DefaultComm<int>::getComm();
-
+  // Check for correct number of arguments
   if (argc != 3) {
-    std::cerr << "Usage: " << argv[0] << " matrixAPath matrixBPath" << std::endl;
-    return 1;
+    if (comm->getRank() == 0) {
+      std::cerr << "Usage: " << argv[0] << " <matrix_A.mtx> <matrix_B.mtx>" << std::endl;
+    }
+    return -1;
   }
 
-  std::string matrixAPath = argv[1];
-  std::string matrixBPath = argv[2];
+  // Get file paths from arguments
+  const char* matrixAPath = argv[1];
+  const char* matrixBPath = argv[2];
 
-  Teuchos::RCP<crs_matrix_type> A = readMatrixWithDefaultValues(matrixAPath, comm);
-  Teuchos::RCP<crs_matrix_type> B = readMatrixWithDefaultValues(matrixBPath, comm);
+  // Read sparse matrix market files
+  using scalar_type = double;
+  using local_ordinal_type = int;
+  using global_ordinal_type = long long;
+  using node_type = Tpetra::Map<>::node_type;
 
-  if (A.is_null() || B.is_null()) {
-    return 1;
+  using crs_matrix_type = Tpetra::CrsMatrix<scalar_type, local_ordinal_type, global_ordinal_type, node_type>;
+  using map_type = Tpetra::Map<local_ordinal_type, global_ordinal_type, node_type>;
+
+  Teuchos::RCP<const map_type> mapA;
+  Teuchos::RCP<crs_matrix_type> A;
+  Tpetra::MatrixMarket::Reader<crs_matrix_type>::readSparseFile(matrixAPath, comm, mapA, A);
+
+  Teuchos::RCP<const map_type> mapB;
+  Teuchos::RCP<crs_matrix_type> B;
+  Tpetra::MatrixMarket::Reader<crs_matrix_type>::readSparseFile(matrixBPath, comm, mapB, B);
+
+  // Check dimensions
+  if (A->getGlobalNumCols() != B->getGlobalNumRows()) {
+    if (comm->getRank() == 0) {
+      std::cerr << "Matrix dimensions do not match for multiplication." << std::endl;
+    }
+    return -1;
   }
 
-  // Multiply A and B, timing the operation
-  Teuchos::RCP<crs_matrix_type> C = Tpetra::createCrsMatrix<scalar_type, local_ordinal_type, global_ordinal_type>(A->getRowMap());
-  {
-    Teuchos::TimeMonitor tm(*Teuchos::TimeMonitor::getNewTimer("Matrix Multiplication Time"));
-    Tpetra::MatrixMatrix::Multiply(*A, false, *B, false, C);
+  // Start timing
+  Teuchos::Time timer("Matrix multiplication time");
+  timer.start();
+
+  // Perform matrix multiplication C = A * B
+  Teuchos::RCP<crs_matrix_type> C = Tpetra::MatrixMatrix::multiply(*A, false, *B, false);
+
+  // Stop timing
+  timer.stop();
+  double elapsedTime = timer.totalElapsedTime();
+
+  // Print timing
+  if (comm->getRank() == 0) {
+    std::cout << "Matrix multiplication took " << elapsedTime << " seconds." << std::endl;
   }
 
-  // Print the timing results
-  Teuchos::TimeMonitor::summarize();
+  // Optionally write result to file
+//  if (comm->getRank() == 0) {
+//    Tpetra::MatrixMarket::Writer<crs_matrix_type>::writeSparseFile("matrix_C.mtx", C);
+//  }
 
   return 0;
 }
